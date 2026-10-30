@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#fde2e4" />
+  <title>O scrisoare pentru tine 💌</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Quicksand', 'Poppins', 'sans-serif'],
+            display: ['Poppins', 'Quicksand', 'sans-serif'],
+            script: ['Dancing Script', 'cursive']
+          },
+          colors: { dusty: '#e8a0b4', peach: '#ffd2b8', cream: '#fff6ec', gold: '#d9a441', rose: '#c8344f' }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+    html, body { height: 100%; }
+    body {
+      font-family: 'Quicksand', 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #fde2e4 0%, #ffd9c7 35%, #fff1e0 65%, #f7cfe0 100%);
+      background-size: 300% 300%;
+      animation: bgShift 16s ease-in-out infinite;
+      overflow-x: hidden;
+      color: #6b2a3a;
+    }
+    @keyframes bgShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+    /* ---------- Aurora / bokeh ---------- */
+    .blob { position: fixed; border-radius: 9999px; filter: blur(70px); opacity: .55; pointer-events: none; z-index: 0; will-change: transform; }
+    .blob.b1 { width: 38vmax; height: 38vmax; background: #ff9fb8; top: -12vmax; left: -10vmax; animation: drift1 20s ease-in-out infinite; }
+    .blob.b2 { width: 34vmax; height: 34vmax; background: #ffcfa8; bottom: -14vmax; right: -8vmax; animation: drift2 24s ease-in-out infinite; }
+    .blob.b3 { width: 26vmax; height: 26vmax; background: #f6b6e0; top: 35%; left: 55%; animation: drift3 28s ease-in-out infinite; opacity: .4; }
+    @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(14vmax, 10vmax) scale(1.2); } }
+    @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-16vmax,-8vmax) scale(1.15); } }
+    @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-12vmax, 8vmax) scale(1.3); } }
+
+    /* ---------- Elemente plutitoare ---------- */
+    #floaters, #petals, #sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+    .floater { position: absolute; bottom: -40px; opacity: 0; will-change: transform, opacity; animation: floatUp linear infinite; text-shadow: 0 0 10px rgba(255,255,255,.8); }
+    @keyframes floatUp {
+      0%   { transform: translate3d(0,0,0) rotate(0deg) scale(.8); opacity: 0; }
+      10%  { opacity: .85; }
+      50%  { transform: translate3d(var(--sway), -55vh, 0) rotate(var(--rot)) scale(1); }
+      90%  { opacity: .7; }
+      100% { transform: translate3d(calc(var(--sway) * -1), -115vh, 0) rotate(calc(var(--rot) * -1)) scale(.9); opacity: 0; }
+    }
+    .twinkle { animation: floatUp linear infinite, twinkle 2.4s ease-in-out infinite; }
+    @keyframes twinkle { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.7); } }
+
+    .petal { position: absolute; top: -40px; will-change: transform; animation: petalFall linear infinite; opacity: .9; }
+    @keyframes petalFall {
+      0%   { transform: translate3d(0,0,0) rotate(0deg) rotateY(0deg); }
+      25%  { transform: translate3d(var(--sway), 28vh, 0) rotate(90deg) rotateY(180deg); }
+      50%  { transform: translate3d(calc(var(--sway) * -.6), 58vh, 0) rotate(200deg) rotateY(360deg); }
+      75%  { transform: translate3d(var(--sway), 86vh, 0) rotate(290deg) rotateY(540deg); }
+      100% { transform: translate3d(calc(var(--sway) * -.4), 112vh, 0) rotate(380deg) rotateY(720deg); }
+    }
+
+    .shooting-star {
+      position: absolute; width: 110px; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0), #fff, #ffe29a);
+      filter: drop-shadow(0 0 6px #ffe29a);
+      transform: rotate(var(--ang)); opacity: 0;
+      animation: shoot 1.4s ease-out forwards;
+    }
+    @keyframes shoot {
+      0% { opacity: 0; transform: translate(0,0) rotate(var(--ang)); }
+      15% { opacity: 1; }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--ang)); }
+    }
+
+    /* ---------- Plic ---------- */
+    #envelopeStage { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6rem; transition: opacity .6s ease, transform .6s ease; }
+    #envelopeStage.leave { opacity: 0; transform: scale(1.15); pointer-events: none; }
+    .envelope { position: relative; width: min(78vw, 320px); height: min(52vw, 210px); cursor: pointer; animation: envFloat 3.2s ease-in-out infinite; filter: drop-shadow(0 22px 28px rgba(200,52,79,.35)); }
+    .envelope.open { animation: none; }
+    @keyframes envFloat { 0%,100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-14px) rotate(1.5deg); } }
+    .env-back  { position: absolute; inset: 0; background: linear-gradient(160deg, #ffc2cf, #f59ab0); border-radius: 14px; }
+    .env-letter { position: absolute; left: 8%; right: 8%; top: 8%; height: 84%; background: #fffaf3; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2.6rem; transition: transform .9s cubic-bezier(.3,1.2,.4,1) .35s; }
+    .env-front { position: absolute; inset: 0; border-radius: 14px; background:
+        linear-gradient(135deg, transparent 49.5%, #f78fa7 50%) left / 51% 100% no-repeat,
+        linear-gradient(225deg, transparent 49.5%, #f78fa7 50%) right / 51% 100% no-repeat,
+        linear-gradient(0deg, #ffb3c4 0%, #ffb3c4 52%, transparent 52.2%);
+      pointer-events: none; }
+    .env-flap { position: absolute; left: 0; right: 0; top: 0; height: 58%; background: linear-gradient(180deg, #ff9db5, #f27d9a); clip-path: polygon(0 0, 100% 0, 50% 100%); transform-origin: top center; transition: transform .7s ease; border-radius: 14px 14px 0 0; }
+    .env-seal { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); z-index: 5; font-size: 2.1rem; transition: opacity .3s; animation: heartbeat 1.3s ease-in-out infinite; }
+    .envelope.open .env-flap { transform: rotateX(180deg); }
+    .envelope.open .env-seal { opacity: 0; }
+    .envelope.open .env-letter { transform: translateY(-62%) scale(1.06); }
+
+    /* ---------- Card ---------- */
+    #tilt { perspective: 1000px; width: 100%; max-width: 32rem; transition: transform .15s ease-out; will-change: transform; }
+    .glass {
+      position: relative;
+      background: rgba(255,255,255,.4);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      border-radius: 2rem;
+      box-shadow: 0 24px 60px -14px rgba(200,52,79,.35), inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    .glass::before {
+      content: ''; position: absolute; inset: -2px; border-radius: inherit; padding: 2px; z-index: -1;
+      background: conic-gradient(from var(--angle), #ff9fb8, #ffd2b8, #d9a441, #ffd2b8, #ff9fb8, #c8344f, #ff9fb8);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      animation: spin 6s linear infinite; opacity: .9;
+    }
+    @keyframes spin { to { --angle: 360deg; } }
+    .card-in { animation: cardIn 1s cubic-bezier(.2,.9,.3,1.2) both; }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(40px) scale(.9) rotate(-2deg); } to { opacity: 1; transform: none; } }
+
+    /* ---------- Inimioară & cuplu ---------- */
+    .beat { display: inline-block; animation: heartbeat 1.3s ease-in-out infinite; filter: drop-shadow(0 6px 10px rgba(200,52,79,.35)); }
+    @keyframes heartbeat { 0%,100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } 45% { transform: scale(1.18); } 60% { transform: scale(1); } }
+
+    .bear { display: inline-block; font-size: 2.6rem; }
+    .bear.l { animation: bearL 2.2s ease-in-out infinite; }
+    .bear.r { animation: bearR 2.2s ease-in-out infinite; }
+    @keyframes bearL { 0%,100% { transform: translateX(0) rotate(-6deg); } 50% { transform: translateX(12px) rotate(6deg); } }
+    @keyframes bearR { 0%,100% { transform: translateX(0) rotate(6deg) scaleX(-1); } 50% { transform: translateX(-12px) rotate(-6deg) scaleX(-1); } }
+    .mini-heart { display: inline-block; font-size: 1.1rem; animation: miniUp 2s ease-in-out infinite; }
+    .mini-heart:nth-child(2) { animation-delay: .4s; }
+    .mini-heart:nth-child(3) { animation-delay: .8s; }
+    @keyframes miniUp { 0%,100% { transform: translateY(4px) scale(.8); opacity: .5; } 50% { transform: translateY(-8px) scale(1.2); opacity: 1; } }
+
+    /* ---------- Text ---------- */
+    .caret::after { content: '|'; margin-left: 2px; color: #c8344f; animation: blink .8s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .reveal { opacity: 0; transform: translateY(14px) scale(.96); }
+    .reveal.show { animation: revealIn .8s cubic-bezier(.2,.9,.3,1.3) forwards; }
+    @keyframes revealIn { to { opacity: 1; transform: none; } }
+    .sweet { transition: opacity .6s ease, transform .6s ease; }
+    .sweet.out { opacity: 0; transform: translateY(8px); }
+    .shine-text {
+      background: linear-gradient(100deg, #c8344f 20%, #ff9db5 40%, #d9a441 50%, #ff9db5 60%, #c8344f 80%);
+      background-size: 250% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: shine 4s linear infinite;
+    }
+    @keyframes shine { to { background-position: -250% center; } }
+
+    /* ---------- Butoane ---------- */
+    .btn-yes {
+      position: relative; overflow: visible;
+      background: linear-gradient(135deg, #e0526b, #c8344f); color: #fff;
+      font-family: 'Poppins', sans-serif; font-weight: 700; border-radius: 9999px;
+      box-shadow: 0 10px 24px -6px rgba(200,52,79,.6);
+      transition: font-size .35s cubic-bezier(.2,.9,.3,1.3), padding .35s cubic-bezier(.2,.9,.3,1.3), filter .2s;
+      animation: yesPulse 1.4s ease-in-out infinite; cursor: pointer; white-space: nowrap;
+    }
+    .btn-yes::after {
+      content: ''; position: absolute; inset: 0; border-radius: inherit;
+      background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+      background-size: 250% 100%; animation: sheen 2.8s ease-in-out infinite; pointer-events: none;
+    }
+    @keyframes sheen { 0% { background-position: 150% 0; } 60%,100% { background-position: -100% 0; } }
+    .btn-yes:hover { filter: brightness(1.1); }
+    @keyframes yesPulse {
+      0%,100% { transform: scale(1);    box-shadow: 0 10px 24px -6px rgba(200,52,79,.55), 0 0 0 0 rgba(224,82,107,.5); }
+      50%     { transform: scale(1.06); box-shadow: 0 14px 30px -6px rgba(200,52,79,.7), 0 0 0 16px rgba(224,82,107,0); }
+    }
+    .btn-no {
+      background: rgba(255,255,255,.7); color: #8a4a5a; font-family: 'Poppins', sans-serif; font-weight: 600;
+      border: 1px solid rgba(200,52,79,.25); border-radius: 9999px; padding: .7rem 1.6rem;
+      transition: left .45s cubic-bezier(.3,1.4,.5,1), top .45s cubic-bezier(.3,1.4,.5,1), transform .3s ease;
+      cursor: pointer; touch-action: manipulation; white-space: nowrap;
+    }
+    .btn-no.dodging { position: fixed; z-index: 50; }
+
+    /* ---------- Efecte globale ---------- */
+    .rain-heart { position: fixed; top: -60px; z-index: 60; pointer-events: none; will-change: transform; animation: rainFall linear forwards; }
+    @keyframes rainFall { 0% { transform: translate3d(0,0,0) rotate(0deg); opacity: 1; } 100% { transform: translate3d(var(--drift),112vh,0) rotate(var(--spin)); opacity: .9; } }
+    .trail { position: fixed; z-index: 70; pointer-events: none; animation: trailUp 1.1s ease-out forwards; }
+    @keyframes trailUp { 0% { transform: translate(-50%,-50%) scale(.4); opacity: 1; } 100% { transform: translate(calc(-50% + var(--tx)), calc(-50% - 50px)) scale(1.1) rotate(var(--r)); opacity: 0; } }
+    .burst { position: fixed; z-index: 70; pointer-events: none; animation: burstOut .9s cubic-bezier(.1,.8,.3,1) forwards; }
+    @keyframes burstOut { 0% { transform: translate(-50%,-50%) scale(.3); opacity: 1; } 100% { transform: translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(1.1); opacity: 0; } }
+
+    /* ---------- Succes ---------- */
+    .fade-out { animation: fadeOut .35s ease forwards; }
+    @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px) scale(.96); } }
+    .draw-heart path { stroke-dasharray: 420; stroke-dashoffset: 420; animation: drawHeart 2s ease forwards .2s, fillHeart 1s ease forwards 1.8s, heartbeat 1.3s ease-in-out infinite 2.8s; transform-origin: center; }
+    @keyframes drawHeart { to { stroke-dashoffset: 0; } }
+    @keyframes fillHeart { to { fill: #ff7a93; } }
+
+    .couple { height: 4rem; position: relative; display: flex; align-items: center; justify-content: center; }
+    .couple .a, .couple .b { position: absolute; font-size: 2.8rem; }
+    .couple .a { animation: meetL 1.4s cubic-bezier(.3,1.3,.5,1) .3s forwards; left: -15%; }
+    .couple .b { animation: meetR 1.4s cubic-bezier(.3,1.3,.5,1) .3s forwards; right: -15%; }
+    @keyframes meetL { to { left: calc(50% - 2.6rem); } }
+    @keyframes meetR { to { right: calc(50% - 2.6rem); } }
+    .couple .k { position: absolute; font-size: 1.6rem; opacity: 0; animation: kiss 1.6s ease 1.5s infinite; top: 0; }
+    @keyframes kiss { 0% { opacity: 0; transform: translateY(14px) scale(.4); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px) scale(1.4); } }
+
+    .date-chip { background: linear-gradient(135deg, #fff6ec, #ffe3cc); border: 1.5px solid rgba(217,164,65,.6); animation: shimmer 3s ease-in-out infinite; }
+    @keyframes shimmer { 0%,100% { box-shadow: 0 8px 22px -8px rgba(217,164,65,.6); } 50% { box-shadow: 0 8px 34px -2px rgba(217,164,65,1); } }
+
+    .meter { height: 14px; background: rgba(255,255,255,.7); border-radius: 9999px; overflow: hidden; border: 1px solid rgba(200,52,79,.2); }
+    .meter > div { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #ffb3c4, #e0526b, #d9a441); background-size: 200% 100%; animation: meterMove 2s linear infinite; transition: width 2.6s cubic-bezier(.2,.8,.2,1); }
+    @keyframes meterMove { to { background-position: -200% 0; } }
+
+    .cd-box { background: rgba(255,255,255,.65); border-radius: 1rem; padding: .5rem .7rem; min-width: 3.6rem; border: 1px solid rgba(217,164,65,.4); }
+    .wobble { animation: wobble .5s ease; }
+    @keyframes wobble { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+
+    /* ---------- Telefon / responsive ---------- */
+    html { -webkit-text-size-adjust: 100%; }
+    button, .envelope {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none; user-select: none;
+      touch-action: manipulation;
+    }
+    .app-main {
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding:
+        max(1.25rem, env(safe-area-inset-top))
+        max(1rem, env(safe-area-inset-right))
+        max(1.25rem, env(safe-area-inset-bottom))
+        max(1rem, env(safe-area-inset-left));
+    }
+    #envelopeStage { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); height: 100vh; height: 100dvh; }
+
+    @media (max-width: 480px) {
+      .glass { border-radius: 1.5rem; backdrop-filter: blur(12px) saturate(140%); -webkit-backdrop-filter: blur(12px) saturate(140%); }
+      .bear { font-size: 2.1rem; }
+      .mini-heart { font-size: .95rem; }
+      .blob { filter: blur(50px); }
+      .cd-box { min-width: 3.2rem; padding: .4rem .5rem; }
+      .couple { height: 3.4rem; }
+      .couple .a, .couple .b { font-size: 2.3rem; }
+      .date-chip { padding: .8rem 1.2rem; }
+      .btn-no { padding: .75rem 1.5rem; min-height: 44px; }
+    }
+
+    /* telefon în poziție orizontală */
+    @media (max-height: 480px) and (orientation: landscape) {
+      .envelope { width: min(36vw, 240px); height: min(24vw, 160px); }
+      #envelopeStage { gap: .7rem; }
+      #envelopeStage p { font-size: 1rem; }
+      .app-main { align-items: flex-start; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body, .floater, .petal, .beat, .btn-yes, .btn-yes::after, .glass::before, .blob, .envelope, .bear, .shine-text { animation: none !important; }
+    }
+  </style>
+</head>
+
+<body class="font-sans">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  <div id="floaters" aria-hidden="true"></div>
+  <div id="petals" aria-hidden="true"></div>
+  <div id="sky" aria-hidden="true"></div>
+
+  <!-- ETAPA 1: plicul -->
+  <div id="envelopeStage">
+    <div class="envelope" id="envelope" role="button" tabindex="0" aria-label="Deschide scrisoarea">
+      <div class="env-back"></div>
+      <div class="env-letter">💌</div>
+      <div class="env-front"></div>
+      <div class="env-flap"></div>
+      <div class="env-seal">❤️</div>
+    </div>
+    <p class="font-script text-3xl sm:text-4xl text-rose text-center px-6 leading-tight">Ai primit o scrisoare...</p>
+    <p class="text-sm sm:text-base text-[#9a5a6b] animate-pulse">Atinge plicul ca să o deschizi 💕</p>
+  </div>
+
+  <!-- ETAPA 2: cardul -->
+  <main class="app-main relative z-10 flex items-center justify-center">
+    <div id="tilt" class="hidden">
+      <section id="card" class="glass px-5 py-8 sm:px-10 sm:py-12 text-center">
+
+        <!-- Întrebarea -->
+        <!-- Scrisoarea ta -->
+        <div id="letter" class="hidden">
+          <div class="beat text-5xl mb-3" aria-hidden="true">💌</div>
+          <div id="letterBox" class="rounded-2xl px-4 py-5 sm:px-5 sm:py-6 text-left cursor-pointer" style="background:rgba(255,250,243,.78); border:1.5px dashed rgba(200,52,79,.35);">
+            <p id="letterText" class="font-script text-[1.3rem] sm:text-3xl text-[#7a3347] leading-snug whitespace-pre-line"></p>
+          </div>
+          <button id="continueBtn" class="reveal btn-yes px-7 py-3 text-base mt-6" type="button">Continuă 💕</button>
+          <p id="skipHint" class="text-xs text-[#b8788a] mt-3">(atinge scrisoarea ca să o citești mai repede)</p>
+        </div>
+
+        <div id="ask" class="hidden">
+          <div class="flex items-center justify-center gap-3 sm:gap-5 mb-3">
+            <span class="bear l" aria-hidden="true">🧸</span>
+            <span class="beat text-6xl sm:text-7xl" aria-hidden="true">💖</span>
+            <span class="bear r" aria-hidden="true">🧸</span>
+          </div>
+          <div class="flex justify-center gap-2 mb-2" aria-hidden="true">
+            <span class="mini-heart">💗</span><span class="mini-heart">💕</span><span class="mini-heart">💗</span>
+          </div>
+
+          <p id="question" class="reveal mt-5 text-2xl sm:text-3xl font-bold shine-text font-display leading-snug">
+            Vrei să ieși la o întâlnire cu mine?
+          </p>
+
+          <p id="sweet" class="sweet reveal mt-4 min-h-[3rem] text-sm sm:text-base text-[#9a5a6b] italic"></p>
+
+          <p id="hint" class="mt-1 min-h-[1.5rem] text-sm sm:text-base text-rose font-semibold"></p>
+
+          <div id="buttons" class="reveal mt-6 flex flex-wrap items-center justify-center gap-4 min-h-[110px]">
+            <button id="yesBtn" class="btn-yes px-8 py-3 text-lg" type="button">Da! ❤️</button>
+            <button id="noBtn" class="btn-no" type="button">Nu</button>
+          </div>
+        </div>
+
+        <!-- Succes -->
+        <div id="success" class="hidden">
+          <div class="couple" aria-hidden="true">
+            <span class="a">🧑</span><span class="b">👩</span>
+            <span class="k" style="left:46%">💋</span>
+            <span class="k" style="left:54%; animation-delay:2.1s">💕</span>
+          </div>
+
+          <svg class="draw-heart mx-auto my-1" width="84" height="76" viewBox="0 0 24 22" aria-hidden="true">
+            <path d="M12 21 C 3 14, 1 9, 1 6.5 C 1 3.5, 3.5 1.5, 6.3 1.5 C 8.6 1.5, 10.8 2.9, 12 5 C 13.2 2.9, 15.4 1.5, 17.7 1.5 C 20.5 1.5, 23 3.5, 23 6.5 C 23 9, 21 14, 12 21 Z" fill="transparent" stroke="#c8344f" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+
+          <h2 class="s-item reveal font-script font-bold text-3xl sm:text-5xl text-rose leading-tight mt-2">
+            Promit că nu vei regreta această decizie!
+          </h2>
+
+          <p class="s-item reveal mt-4 text-lg sm:text-xl font-semibold text-[#7a3347]">
+            Abia aștept să ne vedem pe
+          </p>
+
+          <div class="s-item reveal date-chip inline-block mt-4 rounded-2xl px-6 py-4">
+            <div class="font-display font-bold text-2xl sm:text-3xl text-gold" id="dateText"></div>
+            <div class="font-display font-semibold text-lg sm:text-xl text-rose mt-1" id="timeText"></div>
+          </div>
+
+          <div id="countdown" class="s-item reveal hidden mt-5">
+            <p class="text-xs sm:text-sm text-[#9a5a6b] mb-2">Mai avem de așteptat doar...</p>
+            <div class="flex justify-center gap-2 sm:gap-3 font-display">
+              <div class="cd-box"><div id="cdD" class="text-xl font-bold text-rose">0</div><div class="text-[10px] uppercase text-[#9a5a6b]">zile</div></div>
+              <div class="cd-box"><div id="cdH" class="text-xl font-bold text-rose">0</div><div class="text-[10px] uppercase text-[#9a5a6b]">ore</div></div>
+              <div class="cd-box"><div id="cdM" class="text-xl font-bold text-rose">0</div><div class="text-[10px] uppercase text-[#9a5a6b]">min</div></div>
+              <div class="cd-box"><div id="cdS" class="text-xl font-bold text-rose">0</div><div class="text-[10px] uppercase text-[#9a5a6b]">sec</div></div>
+            </div>
+          </div>
+
+          <div class="s-item reveal mt-6">
+            <p class="text-sm font-semibold text-[#7a3347] mb-2">Nivelul de fericire al inimii mele 💓</p>
+            <div class="meter"><div id="meterBar"></div></div>
+            <p id="meterText" class="text-xs text-[#9a5a6b] mt-1">0%</p>
+          </div>
+
+          <p class="s-item reveal mt-5 text-base sm:text-lg text-[#9a5a6b]">
+            Pregătește-ți cel mai frumos zâmbet. Restul e treaba mea 
+          </p>
+
+          <button id="againBtn" type="button" class="s-item reveal mt-5 text-sm text-[#b8788a] underline underline-offset-4 hover:text-rose transition">
+            🎆 Mai vreau o dată artificii!
+          </button>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <script>
+    /* =====================================================
+       CONFIGURARE — modifică aici data și ora întâlnirii
+       ===================================================== */
+    const CONFIG = {
+      date: '07.10.2026',   // zz.ll.aaaa
+      time: '17:00',        // oo:mm
+      // Scrisoarea ta — poți s-o modifici liber (\n = rând nou)
+      letter:
+        'Dragă Nicoleta,\n\n' +
+        'Ne cunoaștem deja de ceva timp și, în tot acest timp, am ajuns să te plac mai mult decât poate am lăsat să se vadă. Nu știu dacă ai simțit vreodată același lucru sau dacă ai privit lucrurile la fel ca mine, dar am simțit că vreau să fiu sincer cu tine.' +
+        'Îmi place să vorbesc cu tine, îmi place felul tău de a fi și, de fiecare dată când avem o conversație, reușești să-mi faci ziua mai frumoasă.\n\n' +
+        'Nu sunt prea bun la exprimat ceea ce simt și nici nu vreau să folosesc cuvinte mari doar de dragul de a impresiona. De aceea, am ales să pregătesc ceva special pentru tine. ' +
+        'Vreau să știi că toate aceste cuvinte sunt scrise din suflet \n\n' +
+        'Am o mică rugăminte să-ți adresez. Poate pare ceva simplu, dar pentru mine înseamnă foarte mult...\n\n' +
+        'Cu drag,\nDima'
+    };
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isTouch = window.matchMedia('(hover: none)').matches;
+    const $ = (id) => document.getElementById(id);
+    const rand = (a, b) => a + Math.random() * (b - a);
+
+    $('dateText').textContent = CONFIG.date;
+    $('timeText').textContent = 'la ora ' + CONFIG.time;
+
+    /* ---------------- Fundal: inimioare/steluțe care urcă ---------------- */
+    (function () {
+      const box = $('floaters');
+      const symbols = ['♥', '♥', '♥', '✦', '✧', '✨', '❤', '💗'];
+      const colors = ['#e8a0b4', '#f4a3b8', '#ffc9a8', '#d9a441', '#ffffff', '#c8344f'];
+      const count = innerWidth < 640 ? 22 : 38;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('span');
+        const sym = symbols[Math.floor(Math.random() * symbols.length)];
+        const tw = /[✦✧✨]/.test(sym);
+        el.textContent = sym;
+        el.className = 'floater' + (tw ? ' twinkle' : '');
+        el.style.left = rand(0, 100) + 'vw';
+        el.style.fontSize = rand(10, 30) + 'px';
+        el.style.color = colors[Math.floor(Math.random() * colors.length)];
+        el.style.setProperty('--sway', rand(-40, 40) + 'px');
+        el.style.setProperty('--rot', rand(-30, 30) + 'deg');
+        const dur = rand(12, 28);
+        el.style.animationDuration = dur + 's' + (tw ? ', 2.4s' : '');
+        el.style.animationDelay = -Math.random() * dur + 's';
+        box.appendChild(el);
+      }
+    })();
+
+    /* ---------------- Petale care cad ---------------- */
+    (function () {
+      const box = $('petals');
+      const items = ['🌸', '🌹', '🌷', '💮'];
+      const count = innerWidth < 640 ? 8 : 14;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('span');
+        el.className = 'petal';
+        el.textContent = items[Math.floor(Math.random() * items.length)];
+        el.style.left = rand(0, 100) + 'vw';
+        el.style.fontSize = rand(14, 26) + 'px';
+        el.style.setProperty('--sway', rand(-90, 90) + 'px');
+        const dur = rand(11, 20);
+        el.style.animationDuration = dur + 's';
+        el.style.animationDelay = -Math.random() * dur + 's';
+        box.appendChild(el);
+      }
+    })();
+
+    /* ---------------- Stele căzătoare ---------------- */
+    function shootingStar() {
+      if (reduced) return;
+      const s = document.createElement('div');
+      s.className = 'shooting-star';
+      s.style.left = rand(10, 90) + 'vw';
+      s.style.top = rand(2, 40) + 'vh';
+      const ang = rand(25, 40);
+      const dist = rand(260, 420);
+      s.style.setProperty('--ang', ang + 'deg');
+      s.style.setProperty('--dx', Math.cos(ang * Math.PI / 180) * dist + 'px');
+      s.style.setProperty('--dy', Math.sin(ang * Math.PI / 180) * dist + 'px');
+      $('sky').appendChild(s);
+      setTimeout(() => s.remove(), 1500);
+    }
+    setInterval(shootingStar, 3800);
+    setTimeout(shootingStar, 900);
+
+    /* ---------------- Urma de inimioare după cursor + explozie la click ---------------- */
+    const trailIcons = ['💗', '💕', '✨', '💖', '🌸'];
+    let lastTrail = 0;
+    document.addEventListener('pointermove', (e) => {
+      if (reduced || e.pointerType === 'touch') return;
+      const now = performance.now();
+      if (now - lastTrail < 55) return;
+      lastTrail = now;
+      const t = document.createElement('span');
+      t.className = 'trail';
+      t.textContent = trailIcons[Math.floor(Math.random() * trailIcons.length)];
+      t.style.left = e.clientX + 'px';
+      t.style.top = e.clientY + 'px';
+      t.style.fontSize = rand(10, 20) + 'px';
+      t.style.setProperty('--tx', rand(-24, 24) + 'px');
+      t.style.setProperty('--r', rand(-40, 40) + 'deg');
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 1100);
+    });
+
+    function heartBurst(x, y, n = 9) {
+      if (reduced) return;
+      for (let i = 0; i < n; i++) {
+        const b = document.createElement('span');
+        b.className = 'burst';
+        b.textContent = ['❤️', '💖', '💕', '💗'][i % 4];
+        b.style.left = x + 'px';
+        b.style.top = y + 'px';
+        b.style.fontSize = rand(14, 24) + 'px';
+        const a = (Math.PI * 2 * i) / n + rand(-.3, .3);
+        const d = rand(50, 100);
+        b.style.setProperty('--bx', Math.cos(a) * d + 'px');
+        b.style.setProperty('--by', Math.sin(a) * d + 'px');
+        document.body.appendChild(b);
+        setTimeout(() => b.remove(), 900);
+      }
+    }
+    document.addEventListener('pointerdown', (e) => heartBurst(e.clientX, e.clientY, 8));
+
+    /* ---------------- Înclinare 3D a cardului ---------------- */
+    const tilt = $('tilt');
+    if (!reduced && !isTouch) {
+      document.addEventListener('pointermove', (e) => {
+        const x = (e.clientX / innerWidth - 0.5) * 2;
+        const y = (e.clientY / innerHeight - 0.5) * 2;
+        tilt.style.transform = `rotateY(${x * 5}deg) rotateX(${-y * 5}deg)`;
+      });
+    }
+
+    /* ---------------- Plicul ---------------- */
+    const envelope = $('envelope');
+    let opened = false;
+
+    function openEnvelope() {
+      if (opened) return;
+      opened = true;
+      envelope.classList.add('open');
+      const r = envelope.getBoundingClientRect();
+      heartBurst(r.left + r.width / 2, r.top + r.height / 2, 14);
+      setTimeout(() => { $('envelopeStage').classList.add('leave'); }, 1500);
+      setTimeout(() => {
+        $('envelopeStage').remove();
+        showCard();
+      }, 2100);
+    }
+    envelope.addEventListener('click', openEnvelope);
+    envelope.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEnvelope(); } });
+
+    /* ---------------- Apariția cardului + efect de scris ---------------- */
+    function typeText(el, text, speed, done) {
+      el.classList.add('caret');
+      let i = 0;
+      (function step() {
+        el.textContent = text.slice(0, ++i);
+        if (i < text.length) {
+          setTimeout(step, speed + (/[.,!?]/.test(text[i - 1]) ? 220 : 0));
+        } else {
+          setTimeout(() => el.classList.remove('caret'), 600);
+          done && done();
+        }
+      })();
+    }
+
+    const compliments = [
+      'Zâmbetul tău îmi face ziua mai frumoasă ',
+      'Ai o energie care mă face să zâmbesc fără motiv ',
+      'Cu tine, până și o cafea devine o aventură ',
+      'Cred că ne-ar ieși o seară de poveste ',
+      'Promit că o să te fac să râzi cel puțin o dată '
+    ];
+    let cIdx = 0, sweetTimer = null;
+
+    function rotateSweet() {
+      const el = $('sweet');
+      el.classList.add('out');
+      setTimeout(() => {
+        el.textContent = compliments[cIdx++ % compliments.length];
+        el.classList.remove('out');
+      }, 600);
+    }
+
+    function showCard() {
+      tilt.classList.remove('hidden');
+      $('card').classList.add('card-in');
+
+      $('letter').classList.remove('hidden');
+      setTimeout(typeLetter, 700);
+    }
+
+    /* ---------------- Scrisoarea: scrisă literă cu literă ---------------- */
+    let skipLetter = false, letterDone = false;
+
+    function typeLetter() {
+      const el = $('letterText');
+      const text = CONFIG.letter;
+      // textul complet rămâne invizibil, ca să nu sară cardul în înălțime
+      el.innerHTML = '<span id="lv" class="caret"></span><span id="lg" style="color:transparent"></span>';
+      const vis = $('lv'), ghost = $('lg');
+      let i = 0;
+
+      function finish() {
+        letterDone = true;
+        vis.textContent = text;
+        ghost.textContent = '';
+        vis.classList.remove('caret');
+        $('skipHint').classList.add('hidden');
+        setTimeout(() => $('continueBtn').classList.add('show'), 400);
+      }
+
+      (function step() {
+        if (skipLetter || reduced) return finish();
+        i++;
+        vis.textContent = text.slice(0, i);
+        ghost.textContent = text.slice(i);
+        if (i >= text.length) return finish();
+        const ch = text[i - 1];
+        setTimeout(step, 32 + (/[.!?]/.test(ch) ? 260 : /[,]/.test(ch) ? 120 : ch === '\n' ? 180 : 0));
+      })();
+    }
+
+    $('letterBox').addEventListener('click', () => { if (!letterDone) skipLetter = true; });
+
+    $('continueBtn').addEventListener('click', () => {
+      const letter = $('letter');
+      letter.classList.add('fade-out');
+      setTimeout(() => {
+        letter.classList.add('hidden');
+        $('ask').classList.remove('hidden');
+        $('ask').classList.add('pop');
+        $('question').classList.add('show');
+        setTimeout(() => {
+          const s = $('sweet');
+          s.textContent = compliments[cIdx++ % compliments.length];
+          s.classList.add('show');
+          sweetTimer = setInterval(rotateSweet, 4200);
+        }, 500);
+        setTimeout(() => $('buttons').classList.add('show'), 900);
+      }, 350);
+    });
+
+    /* ---------------- Butonul „Nu” care fuge ---------------- */
+    const yesBtn = $('yesBtn');
+    const noBtn = $('noBtn');
+    const hint = $('hint');
+
+    const messages = [
+      'Hmm, ești sigură? ',
+      'Hai, dă-mi o șansă... ',
+      'Butonul ăsta pare stricat ',
+      'Nu poți apăsa „Nu”, încearcă din nou ',
+      'Inimioara mea se face tot mai mică... ',
+      'Uite, „Da” e mult mai tentant ',
+      'Zâmbește și apasă pe „Da!” ',
+      'Promit că plătesc eu desertul ',
+      'Ursulețul meu te roagă frumos ',
+      'Ultima șansă să zici „Da”...'
+    ];
+    const noLabels = ['Nu', 'Sigur?', 'Chiar?', 'Pls 🥺', 'Hmm...', 'Nuuu', '😅'];
+
+    let noAttempts = 0, yesSize = 1, noScale = 1, lastMove = 0;
+
+    function growYes() {
+      yesSize = Math.min(yesSize + 0.14, innerWidth < 640 ? 1.6 : 2.1);
+      const base = innerWidth < 640 ? 18 : 20;
+      yesBtn.style.fontSize = base * yesSize + 'px';
+      yesBtn.style.padding = 12 * yesSize + 'px ' + 32 * yesSize + 'px';
+    }
+
+    function dodge(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const now = performance.now();
+      if (now - lastMove < 250) return;
+      lastMove = now;
+
+      noAttempts++;
+      hint.textContent = messages[(noAttempts - 1) % messages.length];
+      hint.classList.remove('wobble'); void hint.offsetWidth; hint.classList.add('wobble');
+      noBtn.textContent = noLabels[Math.min(noAttempts, noLabels.length - 1)];
+
+      noScale = Math.max(noScale - 0.07, 0.55);
+      growYes();
+
+      // Scoatem butonul din card: efectele cardului (blur + înclinare 3D)
+      // ar face ca „fixed” să se raporteze la card, nu la ecran.
+      if (noBtn.parentElement !== document.body) {
+        const r0 = noBtn.getBoundingClientRect();
+        document.body.appendChild(noBtn);
+        noBtn.style.left = r0.left + 'px';
+        noBtn.style.top = r0.top + 'px';
+      }
+      noBtn.classList.add('dodging');
+      const bw = noBtn.offsetWidth, bh = noBtn.offsetHeight, m = 12;
+      const maxX = document.documentElement.clientWidth - bw - m, maxY = innerHeight - bh - m;
+      const yr = yesBtn.getBoundingClientRect();
+      let x, y, tries = 0;
+      do {
+        x = m + Math.random() * Math.max(maxX - m, 0);
+        y = m + Math.random() * Math.max(maxY - m, 0);
+        tries++;
+      } while (tries < 25 && x < yr.right + 10 && x + bw > yr.left - 10 && y < yr.bottom + 10 && y + bh > yr.top - 10);
+
+      // mic „puf” de inimioare unde era butonul
+      const old = noBtn.getBoundingClientRect();
+      heartBurst(old.left + old.width / 2, old.top + old.height / 2, 5);
+
+      noBtn.style.left = x + 'px';
+      noBtn.style.top = y + 'px';
+      noBtn.style.transform = 'scale(' + noScale + ')';
+    }
+
+    noBtn.addEventListener('mouseenter', dodge);
+    noBtn.addEventListener('pointerdown', dodge);
+    noBtn.addEventListener('touchstart', dodge, { passive: false });
+    noBtn.addEventListener('click', dodge);
+    noBtn.addEventListener('focus', dodge);
+
+    /* ---------------- Sărbătoarea ---------------- */
+    let rainTimer = null;
+
+    function heartRain(duration = 7000) {
+      const emojis = ['❤️', '💖', '💗', '💕', '🌹', '💘', '✨', '🌸'];
+      const end = performance.now() + duration;
+      clearInterval(rainTimer);
+      rainTimer = setInterval(() => {
+        if (performance.now() > end) { clearInterval(rainTimer); return; }
+        const n = innerWidth < 640 ? 2 : 3;
+        for (let i = 0; i < n; i++) {
+          const el = document.createElement('span');
+          el.className = 'rain-heart';
+          el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+          el.style.left = rand(0, 100) + 'vw';
+          el.style.fontSize = rand(16, 42) + 'px';
+          el.style.setProperty('--drift', rand(-60, 60) + 'px');
+          el.style.setProperty('--spin', rand(-270, 270) + 'deg');
+          el.style.animationDuration = rand(3, 6) + 's';
+          document.body.appendChild(el);
+          el.addEventListener('animationend', () => el.remove());
+        }
+      }, 130);
+    }
+
+    const palette = ['#c8344f', '#e8a0b4', '#ffd2b8', '#d9a441', '#fff6ec', '#ff7a93'];
+
+    function fireworks(n = 7) {
+      if (typeof confetti !== 'function') return;
+      for (let i = 0; i < n; i++) {
+        setTimeout(() => {
+          confetti({
+            particleCount: 70, spread: 360, startVelocity: 26, gravity: .75, ticks: 90,
+            origin: { x: rand(.15, .85), y: rand(.1, .5) }, colors: palette, scalar: 1
+          });
+        }, i * 380);
+      }
+    }
+
+    function confettiShow() {
+      if (typeof confetti !== 'function') return;
+      confetti({ particleCount: 170, spread: 100, startVelocity: 48, origin: { y: .6 }, colors: palette, scalar: 1.1 });
+      try {
+        const heart = confetti.shapeFromText({ text: '❤️', scalar: 2 });
+        confetti({ particleCount: 45, spread: 130, startVelocity: 38, origin: { y: .6 }, shapes: [heart], scalar: 2, flat: true });
+      } catch (_) {}
+      const end = Date.now() + 3000;
+      (function frame() {
+        confetti({ particleCount: 4, angle: 60,  spread: 60, origin: { x: 0, y: .75 }, colors: palette });
+        confetti({ particleCount: 4, angle: 120, spread: 60, origin: { x: 1, y: .75 }, colors: palette });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      })();
+    }
+
+    /* ---------------- Numărătoare inversă (apare doar dacă data e în viitor) ---------------- */
+    function startCountdown() {
+      const [d, mo, y] = CONFIG.date.split('.').map(Number);
+      const [h, mi] = CONFIG.time.split(':').map(Number);
+      const target = new Date(y, mo - 1, d, h, mi, 0).getTime();
+      if (!(target > Date.now())) return;
+      $('countdown').classList.remove('hidden');
+      const tick = () => {
+        let diff = Math.max(0, target - Date.now());
+        const days = Math.floor(diff / 864e5); diff -= days * 864e5;
+        const hrs = Math.floor(diff / 36e5);   diff -= hrs * 36e5;
+        const min = Math.floor(diff / 6e4);    diff -= min * 6e4;
+        const sec = Math.floor(diff / 1e3);
+        $('cdD').textContent = days; $('cdH').textContent = hrs;
+        $('cdM').textContent = min;  $('cdS').textContent = sec;
+      };
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    function revealSuccess() {
+      const items = document.querySelectorAll('.s-item');
+      items.forEach((el, i) => setTimeout(() => el.classList.add('show'), 500 + i * 450));
+
+      // bara de fericire
+      setTimeout(() => {
+        $('meterBar').style.width = '100%';
+        const t0 = performance.now();
+        (function count(now) {
+          const p = Math.min((now - t0) / 2600, 1);
+          $('meterText').textContent = Math.round(p * 100) + '% 💖' + (p >= 1 ? ' (prea mult pentru o singură inimă!)' : '');
+          if (p < 1) requestAnimationFrame(count);
+        })(t0);
+      }, 500 + 4 * 450);
+    }
+
+    function celebrate() {
+      clearInterval(sweetTimer);
+      noBtn.style.display = 'none';
+      const ask = $('ask'), success = $('success');
+      ask.classList.add('fade-out');
+
+      setTimeout(() => {
+        ask.classList.add('hidden');
+        success.classList.remove('hidden');
+        startCountdown();
+        revealSuccess();
+      }, 350);
+
+      confettiShow();
+      setTimeout(() => fireworks(7), 900);
+      if (!reduced) heartRain();
+    }
+
+    yesBtn.addEventListener('click', celebrate);
+
+    $('againBtn').addEventListener('click', () => {
+      confettiShow();
+      fireworks(6);
+      if (!reduced) heartRain(4500);
+    });
+  </script>
+</body>
+</html>
